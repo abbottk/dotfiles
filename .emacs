@@ -80,7 +80,7 @@
 
 ;;------------------------------------------------------------------------------
 ;; Fonts, colors, aesthetics
-(defun kjs-size-font ()
+(defun kima-size-font ()
   (interactive)
   (concat "PragmataPro" "-"
           (when window-system
@@ -88,7 +88,7 @@
                 "14"
               "12"))))
 
-(let ((font-name (kjs-size-font)))
+(let ((font-name (kima-size-font)))
   (add-to-list 'default-frame-alist (cons 'font font-name))
   (set-face-attribute 'default t :font font-name))
 
@@ -193,19 +193,19 @@
                              (turn-on-reftex)
                              (outline-minor-mode)))
 
-(defun kjs-bibtex-next-entry ()
+(defun kima-bibtex-next-entry ()
   (interactive)
   (bibtex-end-of-entry)
   (search-forward-regexp "^@.*")
   (beginning-of-line))
 
-(defun kjs-bibtex-prev-entry ()
+(defun kima-bibtex-prev-entry ()
   (interactive)
   (bibtex-beginning-of-entry)
   (search-backward-regexp "^@.*")
   (beginning-of-line))
 
-(defun kjs-bibtex-bind-forward-back-keys ()
+(defun kima-bibtex-bind-forward-back-keys ()
   "Change the keys for moving by paragraph to do something
 sensible in bibtex files."
   (define-key bibtex-mode-map (kbd "M-}") 'kjs-bibtex-next-entry)
@@ -217,7 +217,14 @@ sensible in bibtex files."
 ;; Spelling
 (add-hook 'prog-mode-hook 'flyspell-prog-mode)
 (add-hook 'org-mode-hook 'flyspell-mode)
-(setq-default ispell-program-name "aspell")
+(setq ispell-program-name "aspell")
+(add-to-list 'exec-path "/usr/local/bin")
+(setq ispell-dictionary-alist
+      '((nil
+	 "[A-Za-z]" "[^A-Za-z]" "[']" nil
+	 ("-B" "-d" "english" "--dict-dir"
+	  "/Library/Application Support/cocoAspell/aspell6-en-6.0-0")
+	 nil iso-8859-1)))
 ;; (setq ispell-extra-args '("--sug-mode=fast"))
 
 ;;------------------------------------------------------------------------------
@@ -242,7 +249,7 @@ sensible in bibtex files."
 
 ;;------------------------------------------------------------------------------
 ;; Commenting
-(defun kjs-comment-or-uncomment-region-or-line ()
+(defun kima-comment-or-uncomment-region-or-line ()
   "Comments or uncomments the region or the current line if there
 is no active region."
   (interactive)
@@ -254,7 +261,7 @@ is no active region."
             end (line-end-position)))
     (comment-or-uncomment-region beg end)))
 
-(defun kjs-test-web-mode ()
+(defun kima-test-web-mode ()
   "Handles web-modes stupid special commenting stuff"
   (interactive)
   (if (equal major-mode 'web-mode)
@@ -286,29 +293,42 @@ is no active region."
 
 ;; TODO -- write some kind of magic function to automatically determine which
 ;; build system to use.  In the mean time, default to scons.
-(defun kjs-c-mode-hook ()
-  (setq c-default-style "k&r"
-        c-basic-offset 4)
-  ;; (local-set-key (kbd "C-c C-c") 'kjs-compile-func)
-  ;; (local-set-key (kbd "C-c C-k") 'kjs-compile-clean-func)
-  (local-set-key (kbd "C-c C-l") 'scons-build)
-  (local-set-key (kbd "C-c C-r") 'scons-run-exec))
-(add-hook 'c-mode-common-hook 'kjs-c-mode-hook)
+;; (defun kjs-c-mode-hook ()
+;;   (setq c-default-style "k&r"
+;;         c-basic-offset 4)
+;;   ;; (local-set-key (kbd "C-c C-c") 'kjs-compile-func)
+;;   ;; (local-set-key (kbd "C-c C-k") 'kjs-compile-clean-func)
+;;   (local-set-key (kbd "C-c C-l") 'scons-build)
+;;   (local-set-key (kbd "C-c C-r") 'scons-run-exec))
+;; (add-hook 'c-mode-common-hook 'kjs-c-mode-hook)
 
-(defun kjs-compile-func ()
-  (interactive)
-  (compile (format "make -C %s" (file-name-directory (get-closest-pathname)))))
+;; (defun kjs-compile-func ()
+;;   (interactive)
+;;   (compile (format "make -C %s" (file-name-directory (get-closest-pathname)))))
 
-(defun kjs-compile-clean-func ()
+;; (defun kjs-compile-clean-func ()
+;;   (interactive)
+;;   (compile (format "make -C %s clean"
+;;                    (file-name-directory (get-closest-pathname)))))
+
+(defun llvmize (&optional start end)
+  "Convert the current buffer or region (containing C code) to LLVM assembly via clang and opt"
   (interactive)
-  (compile (format "make -C %s clean"
-                   (file-name-directory (get-closest-pathname)))))
+  (let ((start (if mark-active (region-beginning) (point-min)))
+        (end (if mark-active (region-end) (point-max)))
+        (default-major-mode 'llvm-mode)
+        (buf (generate-new-buffer "*llvm-asm*")))
+    (set-buffer-major-mode buf)
+    (shell-command-on-region start end "clang -emit-llvm -x c -c -o - - | opt -S -mem2reg -basicaa -gvn" buf)
+    (set-buffer buf)
+    (setq buffer-read-only t)
+    (switch-to-buffer-other-window buf)))
 
 ;;------------------------------------------------------------------------------
 ;; Haskell
 (add-hook 'haskell-mode-hook 'kjs-haskell-hook)
 (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
-(defun kjs-haskell-hook ()
+(defun kima-haskell-hook ()
   (setq haskell-interactive-mode-hide-multi-line-errors nil
         haskell-tags-on-save t
         haskell-process-type 'auto)
@@ -410,15 +430,15 @@ is no active region."
 (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
 
 ;; This is a true hack, and should be fixed
-(defun kjs-run-tidy ()
+(defun kima-run-tidy ()
   (interactive)
   (shell-command "tidy-dir")
   (revert-buffer t t))
 
-(defun kjs-web-mode-hook ()
+(defun kima-web-mode-hook ()
   (setq web-mode-markup-indent-offset 2)
-  (define-key web-mode-map (kbd "C-c C-c t") 'kjs-run-tidy))
-(add-hook 'web-mode-hook 'kjs-web-mode-hook)
+  (define-key web-mode-map (kbd "C-c C-c t") 'kima-run-tidy))
+(add-hook 'web-mode-hook 'kima-web-mode-hook)
 
 ;;------------------------------------------------------------------------------
 ;; Eshell and other terminals
@@ -445,10 +465,10 @@ is no active region."
 
 (defalias 'access
   (lambda ()
-    (cd "/ssh:abbottk@access.engr.oregonstate.edu:~/")))
+    (cd "/.ssh:abbottk@access.engr.oregonstate.edu:~/")))
 (defalias 'nome
   (lambda ()
-    (cd "/ssh:abbottk@nome.eecs.oregonstate.edu:~/")))
+    (cd "/.ssh:abbottk@nome.eecs.oregonstate.edu:~/")))
 
 (global-set-key (kbd "C-c t") 'visit-term-buffer)
 
@@ -496,7 +516,7 @@ is no active region."
 ;; TODO: Start caring about Perl
 (add-hook 'prolog-mode-hook 'kjs-prolog-hook)
 (setq prolog-system 'swi)
-(defun kjs-prolog-hook ()
+(defun kima-prolog-hook ()
   (setq prolog-indent-width 4)
   (define-key prolog-mode-map (kbd "C-c C-l") 'prolog-compile-file))
 (add-to-list 'auto-mode-alist '("\\.pl\\'" . prolog-mode))
