@@ -104,7 +104,7 @@
     ;; use 120 char wide window for largeish displays
     ;; and smaller 80 column windows for smaller displays
     ;; pick whatever numbers make sense for you
-    (if (> (x-display-pixel-width) 1280)
+    (if (> (x-display-pixel-width) 1080)
            (add-to-list 'default-frame-alist (cons 'width 120))
            (add-to-list 'default-frame-alist (cons 'width 80)))
     ;; for the height, subtract a couple hundred pixels
@@ -116,6 +116,21 @@
                              (frame-char-height)))))))
 
 (set-frame-size-according-to-resolution)
+
+(defun gud-frame ()
+  (interactive)
+  (set-frame-width (selected-frame) 180))
+
+(global-set-key (kbd "C-c g") 'gud-frame)
+
+(defun reset-frame ()
+  (interactive)
+  (if (> (x-display-pixel-width) 1080)
+      (set-frame-width (selected-frame) 120)
+    (set-frame-width (selected-frame) 80)))
+
+(global-set-key (kbd "C-c r") 'reset-frame)
+
 
 ;;------------------------------------------------------------------------------
 ;; Good behavior
@@ -208,10 +223,10 @@
 (defun kima-bibtex-bind-forward-back-keys ()
   "Change the keys for moving by paragraph to do something
 sensible in bibtex files."
-  (define-key bibtex-mode-map (kbd "M-}") 'kjs-bibtex-next-entry)
-  (define-key bibtex-mode-map (kbd "M-{") 'kjs-bibtex-prev-entry))
+  (define-key bibtex-mode-map (kbd "M-}") 'kima-bibtex-next-entry)
+  (define-key bibtex-mode-map (kbd "M-{") 'kima-bibtex-prev-entry))
 
-(add-hook 'bibtex-mode-hook 'kjs-bibtex-bind-forward-back-keys)
+(add-hook 'bibtex-mode-hook 'kima-bibtex-bind-forward-back-keys)
 
 ;;------------------------------------------------------------------------------
 ;; Spelling
@@ -266,9 +281,9 @@ is no active region."
   (interactive)
   (if (equal major-mode 'web-mode)
       (web-mode-comment-or-uncomment)
-    (kjs-comment-or-uncomment-region-or-line)))
+    (kima-comment-or-uncomment-region-or-line)))
 
-(global-set-key (kbd "C-x C-;") 'kjs-test-web-mode)
+(global-set-key (kbd "C-x C-;") 'kima-test-web-mode)
 
 (defun comment-header-line ()
   "Insert a long comment line with hyphens to denote sections in code."
@@ -293,40 +308,28 @@ is no active region."
 
 ;; TODO -- write some kind of magic function to automatically determine which
 ;; build system to use.  In the mean time, default to scons.
-;; (defun kjs-c-mode-hook ()
+
+;; (defun kima-c-mode-hook ()
 ;;   (setq c-default-style "k&r"
 ;;         c-basic-offset 4)
-;;   ;; (local-set-key (kbd "C-c C-c") 'kjs-compile-func)
-;;   ;; (local-set-key (kbd "C-c C-k") 'kjs-compile-clean-func)
+;;   (local-set-key (kbd "C-c C-c") 'kima-compile-func)
+;;   (local-set-key (kbd "C-c C-k") 'kima-compile-clean-func)
 ;;   (local-set-key (kbd "C-c C-l") 'scons-build)
 ;;   (local-set-key (kbd "C-c C-r") 'scons-run-exec))
-;; (add-hook 'c-mode-common-hook 'kjs-c-mode-hook)
+;; (add-hook 'c-mode-common-hook 'kima-c-mode-hook)
 
-;; (defun kjs-compile-func ()
+;; (defun kima-compile-func ()
 ;;   (interactive)
 ;;   (compile (format "make -C %s" (file-name-directory (get-closest-pathname)))))
 
-;; (defun kjs-compile-clean-func ()
+;; (defun kima-compile-clean-func ()
 ;;   (interactive)
 ;;   (compile (format "make -C %s clean"
 ;;                    (file-name-directory (get-closest-pathname)))))
 
-(defun llvmize (&optional start end)
-  "Convert the current buffer or region (containing C code) to LLVM assembly via clang and opt"
-  (interactive)
-  (let ((start (if mark-active (region-beginning) (point-min)))
-        (end (if mark-active (region-end) (point-max)))
-        (default-major-mode 'llvm-mode)
-        (buf (generate-new-buffer "*llvm-asm*")))
-    (set-buffer-major-mode buf)
-    (shell-command-on-region start end "clang -emit-llvm -x c -c -o - - | opt -S -mem2reg -basicaa -gvn" buf)
-    (set-buffer buf)
-    (setq buffer-read-only t)
-    (switch-to-buffer-other-window buf)))
-
 ;;------------------------------------------------------------------------------
 ;; Haskell
-(add-hook 'haskell-mode-hook 'kjs-haskell-hook)
+(add-hook 'haskell-mode-hook 'kima-haskell-hook)
 (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
 (defun kima-haskell-hook ()
   (setq haskell-interactive-mode-hide-multi-line-errors nil
@@ -514,7 +517,7 @@ is no active region."
 ;;------------------------------------------------------------------------------
 ;; Prolog
 ;; TODO: Start caring about Perl
-(add-hook 'prolog-mode-hook 'kjs-prolog-hook)
+(add-hook 'prolog-mode-hook 'kima-prolog-hook)
 (setq prolog-system 'swi)
 (defun kima-prolog-hook ()
   (setq prolog-indent-width 4)
