@@ -152,6 +152,13 @@
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 (global-auto-revert-mode 1)
 
+;; dirty fix for having auto-complete everywhere
+(define-globalized-minor-mode real-global-auto-complete-mode
+  auto-complete-mode (lambda ()
+                       (if (not (minibufferp (current-buffer)))
+                           (auto-complete-mode 1))
+                       ))
+(real-global-auto-complete-mode t)
 
 ;;------------------------------------------------------------------------------
 ;; Default registers
@@ -202,6 +209,8 @@
                         '("verbatim" "verbatim*" "program" "programc" "prog"))
 
 (add-hook 'LaTeX-mode-hook 'flyspell-mode)
+(add-hook 'LaTeX-mode-hook (lambda ()
+                             (reftex-mode t)))
 (add-hook 'LaTeX-mode-hook (lambda ()
                              (turn-on-auto-fill)
                              (LaTeX-math-mode)
@@ -308,7 +317,6 @@ is no active region."
 
 ;; TODO -- write some kind of magic function to automatically determine which
 ;; build system to use.  In the mean time, default to scons.
-
 ;; (defun kima-c-mode-hook ()
 ;;   (setq c-default-style "k&r"
 ;;         c-basic-offset 4)
