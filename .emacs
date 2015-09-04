@@ -152,14 +152,6 @@
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 (global-auto-revert-mode 1)
 
-;; dirty fix for having auto-complete everywhere
-(define-globalized-minor-mode real-global-auto-complete-mode
-  auto-complete-mode (lambda ()
-                       (if (not (minibufferp (current-buffer)))
-                           (auto-complete-mode 1))
-                       ))
-(real-global-auto-complete-mode t)
-
 ;;------------------------------------------------------------------------------
 ;; Default registers
 (set-register ?e '(file . "~/.emacs"))
@@ -258,6 +250,7 @@ sensible in bibtex files."
 (setq org-pretty-entities 1)
 (setq org-startup-truncated t)
 (setq org-startup-indented 1)
+(add-hook 'text-mode-hook 'turn-on-visual-line-mode)
 
 ;;------------------------------------------------------------------------------
 ;; Projectile
@@ -367,6 +360,7 @@ is no active region."
 
 ;;------------------------------------------------------------------------------
 ;; Idris
+(require 'idris-mode)
 (add-hook 'idris-mode-hook
           '(lambda ()
              (idris-define-loading-keys)
@@ -409,7 +403,11 @@ is no active region."
 
 ;;------------------------------------------------------------------------------
 ;; Markdown
-(add-to-list 'auto-mode-alist '("\\.md\\'" . gfm-mode))
+(autoload 'markdown-mode "markdown-mode"
+  "Major mode for editing markdown files" t)
+(add-to-list 'auto-mode-alist '("\\.text\\'" . markdown-mode))
+(add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
+(add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
 
 ;;------------------------------------------------------------------------------
 ;; FastNav
