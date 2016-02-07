@@ -233,15 +233,15 @@ sensible in bibtex files."
 ;; Spelling
 (add-hook 'prog-mode-hook 'flyspell-prog-mode)
 (add-hook 'org-mode-hook 'flyspell-mode)
-(setq ispell-program-name "aspell")
-(add-to-list 'exec-path "/usr/local/bin")
-(setq ispell-dictionary-alist
-      '((nil
-	 "[A-Za-z]" "[^A-Za-z]" "[']" nil
-	 ("-B" "-d" "english" "--dict-dir"
-	  "/Library/Application Support/cocoAspell/aspell6-en-6.0-0")
-	 nil iso-8859-1)))
-;; (setq ispell-extra-args '("--sug-mode=fast"))
+(setq ispell-program-name "aspell"
+      ispell-dictionary "english"
+      ispell-dictionary-alist
+      (let ((default '("[A-Za-z]" "[^A-Za-z]" "[']" nil
+                       ("-B" "-d" "english" "--dict-dir"
+                        "/Library/Application Support/cocoAspell/aspell6-en-6.0-0")
+                       nil iso-8859-1)))
+        '((nil ,@default)
+          "english" ,@default)))
 
 ;;------------------------------------------------------------------------------
 ;; Org
@@ -349,14 +349,14 @@ is no active region."
 ;;------------------------------------------------------------------------------
 ;; Agda
 ;;(require 'ucs-utils)
-(load-file (let ((coding-system-for-read 'utf-8))
-             (shell-command-to-string "agda-mode locate")))
-(add-hook 'agda2-mode-hook
-          '(lambda ()
-             (customize-set-variable
-              'agda2-highlight-face-groups 'default-faces)
-             (customize-set-variable
-              'agda2-include-dirs '("." "/Users/abbottk/Library/Haskell/bin"))))
+;; (load-file (let ((coding-system-for-read 'utf-8))
+;;              (shell-command-to-string "agda-mode locate")))
+;; (add-hook 'agda2-mode-hook
+;;           '(lambda ()
+;;              (customize-set-variable
+;;               'agda2-highlight-face-groups 'default-faces)
+;;              (customize-set-variable
+;;               'agda2-include-dirs '("." "/Users/abbottk/Library/Haskell/bin"))))
 
 ;;------------------------------------------------------------------------------
 ;; Idris
