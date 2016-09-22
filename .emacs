@@ -348,15 +348,15 @@ is no active region."
 
 ;;------------------------------------------------------------------------------
 ;; Agda
-;;(require 'ucs-utils)
-;; (load-file (let ((coding-system-for-read 'utf-8))
-;;              (shell-command-to-string "agda-mode locate")))
-;; (add-hook 'agda2-mode-hook
-;;           '(lambda ()
-;;              (customize-set-variable
-;;               'agda2-highlight-face-groups 'default-faces)
-;;              (customize-set-variable
-;;               'agda2-include-dirs '("." "/Users/abbottk/Library/Haskell/bin"))))
+(require 'ucs-utils)
+(load-file (let ((coding-system-for-read 'utf-8))
+             (shell-command-to-string "agda-mode locate")))
+(add-hook 'agda2-mode-hook
+          '(lambda ()
+             (customize-set-variable
+              'agda2-highlight-face-groups 'default-faces)
+             (customize-set-variable
+              'agda2-include-dirs '("." "/Users/abbottk/Library/Haskell/bin"))))
 
 ;;------------------------------------------------------------------------------
 ;; Idris
