@@ -15,13 +15,20 @@
 (add-to-list 'package-archives
              '("melpa" . "http://melpa.org/packages/") t)
 
+(add-to-list 'package-archives
+             '("melpa-stable" . "https://stable.melpa.org/packages/"))
+
 (setq package-archive-enable-alist '(("melpa" deft magit)))
 
 ;;------------------------------------------------------------------------------
 ;; Install packages as necessary on startup. Credit largely to Emacs Prelude.
 (defvar my-packages '(ace-jump-mode
+                      ag
                       auctex
+                      auctex-latexmk
                       change-inner
+                      company
+                      company-coq
                       exec-path-from-shell
                       expand-region
                       fastnav
@@ -30,6 +37,7 @@
                       haskell-mode
                       idris-mode
                       ido-vertical-mode
+                      latex-preview-pane
                       lua-mode
                       magit
                       markdown-mode
@@ -37,10 +45,13 @@
                       paredit
                       projectile
                       rainbow-delimiters
+                      smex
                       solarized-theme
+                      transpose-frame
                       ucs-utils
                       unicode-fonts
                       web-mode
+                      yasnippet
                       zenburn-theme)
   "Packages to install at launch, when necessary.")
 
@@ -92,10 +103,26 @@
   (add-to-list 'default-frame-alist (cons 'font font-name))
   (set-face-attribute 'default t :font font-name))
 
-(if window-system
-    (load-theme 'zenburn t)
-  (load-theme 'wombat t))
 (setq-default line-spacing 0)
+
+;; Cycle through this set of themes
+(setq my-themes '(zenburn solarized-light))
+
+(setq my-cur-theme nil)
+(defun cycle-my-theme ()
+  "Cycle through a list of themes, my-themes"
+  (interactive)
+  (when my-cur-theme
+    (disable-theme my-cur-theme)
+    (setq my-themes (append my-themes (list my-cur-theme))))
+  (setq my-cur-theme (pop my-themes))
+  (load-theme my-cur-theme t))
+
+;; Switch to the first theme in the list above
+(cycle-my-theme)
+
+;; Bind this to C-t
+(global-set-key (kbd "C-c C-t") 'cycle-my-theme)
 
 (defun set-frame-size-according-to-resolution ()
   (interactive)
@@ -177,15 +204,29 @@
 
 ;;------------------------------------------------------------------------------
 ;; Auctex / LaTeX
+(add-to-list 'auto-mode-alist '("\\.tex\\'" . LaTeX-mode))
 (setq TeX-PDF-mode t
       TeX-auto-save nil
       TeX-parse-self nil
-      LaTeX-command-style '(("" "%(PDF)%(latex) -file-line-error %S%(PDFout)"))
-      reftex-plug-into-AUCTeX t)
+      reftex-plug-into-AUCTeX t
+      LaTeX-indent-level 0
+      LaTeX-item-indent 0
+      TeX-brace-indent-level 0)
 
-(setq-default TeX-master nil)
+(customize-set-variable 'LaTeX-verbatim-environments
+                        '("verbatim" "verbatim*" "program" "programc" "prog"
+                          "BVerbatim"))
 
-(add-to-list 'auto-mode-alist '("\\.tex\\'" . LaTeX-mode))
+;; Spell checking
+(add-hook 'LaTeX-mode-hook 'flyspell-mode)
+
+(add-hook 'LaTeX-mode-hook (lambda ()
+                             (turn-on-auto-fill)
+                             (LaTeX-math-mode)
+                             (turn-on-reftex)
+                             (outline-minor-mode)))
+
+(auctex-latexmk-setup)
 
 (when (eq system-type 'darwin)
   (setq TeX-view-program-list
@@ -197,17 +238,8 @@
           (output-dvi "DVI Viewer")
           (output-html "HTML Viewer"))))
 
-(customize-set-variable 'LaTeX-verbatim-environments
-                        '("verbatim" "verbatim*" "program" "programc" "prog"))
-
-(add-hook 'LaTeX-mode-hook 'flyspell-mode)
 (add-hook 'LaTeX-mode-hook (lambda ()
                              (reftex-mode t)))
-(add-hook 'LaTeX-mode-hook (lambda ()
-                             (turn-on-auto-fill)
-                             (LaTeX-math-mode)
-                             (turn-on-reftex)
-                             (outline-minor-mode)))
 
 (defun kima-bibtex-next-entry ()
   (interactive)
@@ -231,17 +263,9 @@ sensible in bibtex files."
 
 ;;------------------------------------------------------------------------------
 ;; Spelling
-(add-hook 'prog-mode-hook 'flyspell-prog-mode)
-(add-hook 'org-mode-hook 'flyspell-mode)
-(setq ispell-program-name "aspell"
-      ispell-dictionary "english"
-      ispell-dictionary-alist
-      (let ((default '("[A-Za-z]" "[^A-Za-z]" "[']" nil
-                       ("-B" "-d" "english" "--dict-dir"
-                        "/Library/Application Support/cocoAspell/aspell6-en-6.0-0")
-                       nil iso-8859-1)))
-        '((nil ,@default)
-          "english" ,@default)))
+(when (executable-find "hunspell")
+  (setq-default ispell-program-name "hunspell")
+  (setq ispell-really-hunspell t))
 
 ;;------------------------------------------------------------------------------
 ;; Org
@@ -348,15 +372,14 @@ is no active region."
 
 ;;------------------------------------------------------------------------------
 ;; Agda
-(require 'ucs-utils)
-(load-file (let ((coding-system-for-read 'utf-8))
-             (shell-command-to-string "agda-mode locate")))
-(add-hook 'agda2-mode-hook
-          '(lambda ()
-             (customize-set-variable
-              'agda2-highlight-face-groups 'default-faces)
-             (customize-set-variable
-              'agda2-include-dirs '("." "/Users/abbottk/Library/Haskell/bin"))))
+;; (load-file (let ((coding-system-for-read 'utf-8))
+;;              (shell-command-to-string "agda-mode locate")))
+;; (add-hook 'agda2-mode-hook
+;;           '(lambda ()
+;;              (customize-set-variable
+;;               'agda2-highlight-face-groups 'default-faces)
+;;              (customize-set-variable
+;;               'agda2-include-dirs '("." "/Users/abbottk/src/agda/lib/src"))))
 
 ;;------------------------------------------------------------------------------
 ;; Idris
@@ -376,6 +399,18 @@ is no active region."
                                  :inherit 'font-lock-string-face)
              (set-face-attribute 'idris-loaded-region-face nil
                                  :background nil)))
+(eval-after-load 'flycheck
+  '(progn
+     (flycheck-define-checker idris
+                              "An Idris syntax and type checker."
+                              :command ("idris" "--check" "--nocolor" "--warnpartial" source)
+                              :error-patterns
+                              ((warning line-start (file-name) ":" line ":" column ":Warning - "
+                                        (message (and (* nonl) (* "\n" (not (any "/" "~")) (* nonl)))))
+                               (error lin-start (file-name) ":" line ":" column ":"
+                                      (message (and (* nonl) (* "\n" (not (any "/" "~")) (* nonl))))))
+                              :modes idris-mode)
+     (add-to-list 'flycheck-checkers 'idris)))
 
 ;;------------------------------------------------------------------------------
 ;; Paredit
@@ -403,11 +438,7 @@ is no active region."
 
 ;;------------------------------------------------------------------------------
 ;; Markdown
-(autoload 'markdown-mode "markdown-mode"
-  "Major mode for editing markdown files" t)
-(add-to-list 'auto-mode-alist '("\\.text\\'" . markdown-mode))
-(add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
-(add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
+(add-to-list 'auto-mode-alist '("\\.md\\'" . gfm-mode))
 
 ;;------------------------------------------------------------------------------
 ;; FastNav
@@ -429,9 +460,9 @@ is no active region."
 
 ;;------------------------------------------------------------------------------
 ;; Whitespace and long lines
-(setq whitespace-style '(face lines))
-(setq whitespace-line-column 80)
-(add-hook 'prog-mode-hook 'whitespace-mode)
+;; (setq whitespace-style '(face lines))
+;; (setq whitespace-line-column 80)
+;; (add-hook 'prog-mode-hook 'whitespace-mode)
 
 ;;------------------------------------------------------------------------------
 ;; Web mode
@@ -457,17 +488,17 @@ is no active region."
 (add-hook 'term-mode-hook
           (lambda () (setq term-buffer-maximum-size 10000)))
 
-(setq explicit-shell-file-name "/usr/local/bin/bash")
+;; (setq explicit-shell-file-name "/usr/local/bin/bash")
 
-(defun visit-term-buffer ()
-  "Create or visit a terminal buffer."
-  (interactive)
-  (if (not (get-buffer "*ansi-term*"))
-      (progn
-     (split-window-sensibly (selected-window))
-     (other-window 1)
-     (ansi-term "/usr/local/bin/bash"))
-    (switch-to-buffer-other-window "*ansi-term*")))
+;; (defun visit-term-buffer ()
+;;   "Create or visit a terminal buffer."
+;;   (interactive)
+;;   (if (not (get-buffer "*ansi-term*"))
+;;       (progn
+;;      (split-window-sensibly (selected-window))
+;;      (other-window 1)
+;;      (ansi-term "/usr/local/bin/bash"))
+;;     (switch-to-buffer-other-window "*ansi-term*")))
 
 (defalias 'ff 'find-file)
 (defalias 'ffo 'find-file-other-window)
@@ -478,8 +509,11 @@ is no active region."
 (defalias 'nome
   (lambda ()
     (cd "/.ssh:abbottk@nome.eecs.oregonstate.edu:~/")))
+(defalias 'eos
+  (lambda ()
+    (cd "/.ssh:abbottk@eos-class.engr.oregonstate.edu:~/")))
 
-(global-set-key (kbd "C-c t") 'visit-term-buffer)
+(global-set-key (kbd "C-c t") 'eshell)
 
 ;;------------------------------------------------------------------------------
 ;; GLSL
@@ -499,16 +533,23 @@ is no active region."
 ;;------------------------------------------------------------------------------
 ;; Proof General & Coq
 (load-file "/Users/abbottk/.emacs.d/ProofGeneral-4.2/generic/proof-site.el")
-(add-to-list 'load-path "/usr/local/opt/coq/lib/emacs/site-lisp")
+(add-to-list 'load-path "/usr/local/share/emacs/site-lisp/coq")
 (setq auto-mode-alist (cons '("\\.v$" . coq-mode) auto-mode-alist))
 (autoload 'coq-mode "coq" "Major mode for editing Coq vernacular." t)
 (add-hook 'coq-mode-hook (lambda () (electric-indent-local-mode -1)))
 (add-hook 'coq-mode-hook (lambda () (show-paren-mode -1)))
 
 (custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(LaTeX-verbatim-environments
    (quote
-    ("verbatim" "verbatim*" "program" "programc" "prog")) t)
+    ("verbatim" "verbatim*" "program" "programc" "prog")))
+ '(custom-safe-themes
+   (quote
+    ("20e359ef1818a838aff271a72f0f689f5551a27704bf1c9469a5c2657b417e6c" "d677ef584c6dfc0697901a44b885cc18e206f05114c8a3b7fde674fce6180879" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" default)))
  '(proof-electric-terminator-enable t))
 
 ;;------------------------------------------------------------------------------
@@ -539,11 +580,8 @@ is no active region."
 (global-set-key (kbd "C-=") 'er/expand-region)
 
 ;;------------------------------------------------------------------------------
-;; PostScript Print Properties
-(setq ps-paper-type 'letter
-     ps-font-size 8.0
-     ps-print-header nil
-     ps-portrait-mode t)
+;; Transpose Frame
+(require 'transpose-frame)
 
 ;;------------------------------------------------------------------------------
 ;; Misc things that should probably be in a different file
@@ -600,3 +638,9 @@ is no active region."
 
 ;;------------------------------------------------------------------------------
 (message "%s" "Good morning, Dave")
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
